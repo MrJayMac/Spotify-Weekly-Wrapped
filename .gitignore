@@ -1,1 +1,3 @@
 /backend/.env
+/analytics/.env
+/pipelines/.env

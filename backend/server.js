@@ -124,64 +124,35 @@ app.get('/recent-summary/:spotify_id', async (req, res) => {
     const { spotify_id } = req.params;
 
     try {
-        const result = await pool.query('SELECT access_token FROM users WHERE spotify_id = $1', [spotify_id]);
+        const trackResult = await pool.query(
+            `SELECT track_name, artist_name, COUNT(*) as play_count
+             FROM listening_history
+             WHERE spotify_id = $1
+             GROUP BY track_name, artist_name
+             ORDER BY play_count DESC
+             LIMIT 5`, [spotify_id]
+        );
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const access_token = result.rows[0].access_token;
-
-        const spotifyResponse = await axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=50', {
-            headers: { Authorization: `Bearer ${access_token}` }
-        });
-
-        const tracks = spotifyResponse.data.items;
-
-        if (!tracks || tracks.length === 0) {
-            return res.json({ message: "No recent tracks found" });
-        }
-
-        // Process and summarize data
-        const trackCount = {};
-        const artistCount = {};
-        let totalSongs = 0;
-
-        tracks.forEach(trackItem => {
-            const track = trackItem.track;
-            const artistName = track.artists.map(artist => artist.name).join(', ');
-
-            // Count how many times each song was played
-            trackCount[track.name] = (trackCount[track.name] || 0) + 1;
-
-            // Count how many times each artist was played
-            artistCount[artistName] = (artistCount[artistName] || 0) + 1;
-
-            totalSongs++;
-        });
-
-        // Get top 5 songs
-        const topSongs = Object.entries(trackCount)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([song, count]) => ({ song, count }));
-
-        // Get top 5 artists
-        const topArtists = Object.entries(artistCount)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([artist, count]) => ({ artist, count }));
+        const artistResult = await pool.query(
+            `SELECT artist_name, COUNT(*) as play_count
+             FROM listening_history
+             WHERE spotify_id = $1
+             GROUP BY artist_name
+             ORDER BY play_count DESC
+             LIMIT 5`, [spotify_id]
+        );
 
         res.json({
-            totalSongs,
-            topSongs,
-            topArtists
+            topSongs: trackResult.rows,
+            topArtists: artistResult.rows
         });
 
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch recent summary' });
+        console.error("Error fetching summary:", error.message);
+        res.status(500).json({ error: "Failed to fetch recent summary" });
     }
 });
+
 
 
 

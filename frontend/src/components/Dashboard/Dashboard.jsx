@@ -19,7 +19,7 @@ const Dashboard = () => {
 
             axios.get(`http://localhost:8000/user/${spotifyId}`)
                 .then(res => setDisplayName(res.data.display_name));
-
+                
             axios.get(`http://localhost:8000/recent-summary/${spotifyId}`)
                 .then(res => setRecentSummary(res.data));
         })
@@ -35,19 +35,18 @@ const Dashboard = () => {
             {recentSummary ? (
                 <div>
                     <h2>Recent Summary</h2>
-                    <p>Total Songs Played: {recentSummary.totalSongs}</p>
 
                     <h3>Top 5 Songs:</h3>
                     <ul>
                         {recentSummary.topSongs.map((song, index) => (
-                            <li key={index}>{song.song} ({song.count} plays)</li>
+                            <li key={index}>{song.track_name} - {song.artist_name} ({song.play_count} plays)</li>
                         ))}
                     </ul>
 
                     <h3>Top 5 Artists:</h3>
                     <ul>
                         {recentSummary.topArtists.map((artist, index) => (
-                            <li key={index}>{artist.artist} ({artist.count} plays)</li>
+                            <li key={index}>{artist.artist_name} ({artist.play_count} plays)</li>
                         ))}
                     </ul>
                 </div>
