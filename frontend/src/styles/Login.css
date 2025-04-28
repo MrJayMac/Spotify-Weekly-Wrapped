@@ -1,0 +1,145 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1DB954 0%, #191414 100%);
+  padding: 20px;
+}
+
+.login-card {
+  background-color: rgba(25, 20, 20, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  color: white;
+}
+
+.login-header {
+  padding: 30px 20px;
+  text-align: center;
+  background-color: #1DB954;
+  color: white;
+}
+
+.login-header h1 {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.login-header p {
+  margin: 10px 0 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.login-content {
+  padding: 30px;
+  text-align: center;
+}
+
+.login-content p {
+  margin-bottom: 25px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.spotify-login-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1DB954;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-bottom: 30px;
+}
+
+.spotify-login-button:hover {
+  background-color: #1ed760;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(29, 185, 84, 0.3);
+}
+
+.spotify-login-button i {
+  margin-right: 10px;
+  font-size: 1.3rem;
+}
+
+.login-features {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.feature {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.feature i {
+  font-size: 2rem;
+  color: #1DB954;
+  margin-bottom: 15px;
+}
+
+.feature h3 {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+}
+
+.feature p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+.login-footer {
+  padding: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #1DB954;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 768px) {
+  .login-features {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
