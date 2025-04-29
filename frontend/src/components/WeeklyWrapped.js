@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../App';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
 import '../styles/WeeklyWrapped.css';
@@ -7,7 +8,9 @@ import '../styles/WeeklyWrapped.css';
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement);
 
-function WeeklyWrapped({ token, onLogout }) {
+function WeeklyWrapped() {
+  // Get authentication context
+  const { token, refreshToken, updateToken, handleLogout } = useContext(AuthContext);
   const [weeklyData, setWeeklyData] = useState(null);
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
@@ -18,23 +21,41 @@ function WeeklyWrapped({ token, onLogout }) {
 
   useEffect(() => {
     // Fetch weekly analytics data
-    fetch(`http://localhost:8000/weekly-analytics?access_token=${token}`)
+    fetch(`http://localhost:8000/weekly-analytics?access_token=${token}&refresh_token=${refreshToken}`)
       .then(response => response.json())
       .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
         setWeeklyData(data);
         
         // Fetch top tracks for the week
-        return fetch(`http://localhost:8000/top-tracks?access_token=${token}&time_range=short_term`);
+        return fetch(`http://localhost:8000/top-tracks?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&time_range=short_term`);
       })
       .then(response => response.json())
       .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
         setTopTracks(data.items || []);
         
         // Fetch top artists for the week
-        return fetch(`http://localhost:8000/top-artists?access_token=${token}&time_range=short_term`);
+        return fetch(`http://localhost:8000/top-artists?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&time_range=short_term`);
       })
       .then(response => response.json())
       .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
         setTopArtists(data.items || []);
         
         // Generate insights (in a real app, these would come from the AI backend)
@@ -55,9 +76,13 @@ function WeeklyWrapped({ token, onLogout }) {
       })
       .catch(error => {
         console.error('Error fetching weekly data:', error);
+        // Check if we need to reauthenticate
+        if (error.needsReauthentication) {
+          handleLogout();
+        }
         setIsLoading(false);
       });
-  }, [token]);
+  }, [token, refreshToken, updateToken, handleLogout]);
 
   const nextSlide = () => {
     setCurrentSlide(prev => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -199,7 +224,26 @@ function WeeklyWrapped({ token, onLogout }) {
         <div className="slide-content">
           <h2>Your Genre Mix</h2>
           <div className="chart-container">
-            <Pie data={genreData} options={{ responsive: true }} />
+            <Pie 
+              data={genreData} 
+              options={{ 
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                    labels: {
+                      boxWidth: 12,
+                      padding: 15,
+                      color: '#fff'
+                    }
+                  }
+                },
+                layout: {
+                  padding: 20
+                }
+              }} 
+            />
           </div>
           <p className="chart-description">Pop dominated your week with 35% of your listening time.</p>
         </div>
@@ -306,14 +350,22 @@ function WeeklyWrapped({ token, onLogout }) {
         <Link to="/dashboard" className="back-button">
           <i className="fas fa-arrow-left"></i> Back to Dashboard
         </Link>
-        <button onClick={onLogout} className="logout-button">Logout</button>
+        <button onClick={handleLogout} className="logout-button">Logout</button>
       </header>
 
       <main className={`wrapped-content ${animationComplete ? 'animated' : ''}`}>
-        <div className="slides-container" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+        <div 
+          className="slides-container" 
+          style={{ 
+            transform: `translate3d(-${currentSlide * 100}%, 0, 0)`,
+            WebkitTransform: `translate3d(-${currentSlide * 100}%, 0, 0)`
+          }}
+        >
           {slides.map((slide, index) => (
             <div key={slide.id} className={`slide ${currentSlide === index ? 'active' : ''}`}>
-              {slide.content}
+              <div className="slide-inner">
+                {slide.content}
+              </div>
             </div>
           ))}
         </div>
