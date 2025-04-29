@@ -67,9 +67,9 @@ app.get('/callback', async (req, res) => {
   }
 });
 
-// Get user's profile
-app.get('/me', async (req, res) => {
-  const { access_token } = req.query;
+// Token refresh middleware
+async function refreshTokenIfNeeded(req, res, next) {
+  const { access_token, refresh_token } = req.query;
   
   if (!access_token) {
     return res.status(401).json({ error: 'Access token required' });
@@ -77,8 +77,68 @@ app.get('/me', async (req, res) => {
   
   spotifyApi.setAccessToken(access_token);
   
+  if (refresh_token) {
+    spotifyApi.setRefreshToken(refresh_token);
+  }
+  
+  try {
+    // Try a simple API call to check if token is valid
+    await spotifyApi.getMe();
+    // If successful, continue with the original request
+    next();
+  } catch (err) {
+    // Check if token expired error
+    if (err.statusCode === 401 && refresh_token) {
+      console.log('Access token expired, attempting to refresh...');
+      try {
+        const data = await spotifyApi.refreshAccessToken();
+        const newAccessToken = data.body['access_token'];
+        
+        // Update token in database
+        const { error } = await supabase
+          .from('user_tokens')
+          .update({
+            access_token: newAccessToken,
+            updated_at: new Date().toISOString()
+          })
+          .eq('refresh_token', refresh_token);
+        
+        if (error) console.error('Error updating token in database:', error);
+        
+        // Set new access token for the API call
+        spotifyApi.setAccessToken(newAccessToken);
+        
+        // Add the new token to the request for the route handler
+        req.newAccessToken = newAccessToken;
+        
+        next();
+      } catch (refreshErr) {
+        console.error('Error refreshing token:', refreshErr);
+        return res.status(401).json({ 
+          error: 'Session expired. Please log in again.',
+          needsReauthentication: true 
+        });
+      }
+    } else {
+      console.error('API Error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'API error' });
+    }
+  }
+}
+
+// Get user's profile
+app.get('/me', refreshTokenIfNeeded, async (req, res) => {
   try {
     const data = await spotifyApi.getMe();
+    
+    // If we have a new token from the middleware, include it in the response
+    if (req.newAccessToken) {
+      return res.json({
+        ...data.body,
+        newAccessToken: req.newAccessToken
+      });
+    }
+    
     res.json(data.body);
   } catch (err) {
     console.error('Error getting user profile:', err);
@@ -87,15 +147,7 @@ app.get('/me', async (req, res) => {
 });
 
 // Get user's recently played tracks
-app.get('/recently-played', async (req, res) => {
-  const { access_token } = req.query;
-  
-  if (!access_token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-  
-  spotifyApi.setAccessToken(access_token);
-  
+app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
   try {
     const data = await spotifyApi.getMyRecentlyPlayedTracks({ limit: 50 });
     
@@ -117,6 +169,14 @@ app.get('/recently-played', async (req, res) => {
     
     if (error) console.error('Error storing listening history:', error);
     
+    // If we have a new token from the middleware, include it in the response
+    if (req.newAccessToken) {
+      return res.json({
+        ...data.body,
+        newAccessToken: req.newAccessToken
+      });
+    }
+    
     res.json(data.body);
   } catch (err) {
     console.error('Error getting recently played tracks:', err);
@@ -125,20 +185,23 @@ app.get('/recently-played', async (req, res) => {
 });
 
 // Get user's top tracks
-app.get('/top-tracks', async (req, res) => {
-  const { access_token, time_range = 'short_term' } = req.query;
-  
-  if (!access_token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-  
-  spotifyApi.setAccessToken(access_token);
+app.get('/top-tracks', refreshTokenIfNeeded, async (req, res) => {
+  const { time_range = 'short_term' } = req.query;
   
   try {
     const data = await spotifyApi.getMyTopTracks({ 
       time_range, // short_term (4 weeks), medium_term (6 months), long_term (years)
       limit: 20 
     });
+    
+    // If we have a new token from the middleware, include it in the response
+    if (req.newAccessToken) {
+      return res.json({
+        ...data.body,
+        newAccessToken: req.newAccessToken
+      });
+    }
+    
     res.json(data.body);
   } catch (err) {
     console.error('Error getting top tracks:', err);
@@ -147,20 +210,23 @@ app.get('/top-tracks', async (req, res) => {
 });
 
 // Get user's top artists
-app.get('/top-artists', async (req, res) => {
-  const { access_token, time_range = 'short_term' } = req.query;
-  
-  if (!access_token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-  
-  spotifyApi.setAccessToken(access_token);
+app.get('/top-artists', refreshTokenIfNeeded, async (req, res) => {
+  const { time_range = 'short_term' } = req.query;
   
   try {
     const data = await spotifyApi.getMyTopArtists({ 
       time_range,
       limit: 20 
     });
+    
+    // If we have a new token from the middleware, include it in the response
+    if (req.newAccessToken) {
+      return res.json({
+        ...data.body,
+        newAccessToken: req.newAccessToken
+      });
+    }
+    
     res.json(data.body);
   } catch (err) {
     console.error('Error getting top artists:', err);
@@ -169,15 +235,7 @@ app.get('/top-artists', async (req, res) => {
 });
 
 // Get recommendations based on user's top tracks
-app.get('/recommendations', async (req, res) => {
-  const { access_token } = req.query;
-  
-  if (!access_token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-  
-  spotifyApi.setAccessToken(access_token);
-  
+app.get('/recommendations', refreshTokenIfNeeded, async (req, res) => {
   try {
     // First get user's top tracks
     const topTracks = await spotifyApi.getMyTopTracks({ 
@@ -192,6 +250,14 @@ app.get('/recommendations', async (req, res) => {
       seed_tracks: seedTracks,
       limit: 20
     });
+    
+    // If we have a new token from the middleware, include it in the response
+    if (req.newAccessToken) {
+      return res.json({
+        ...recommendations.body,
+        newAccessToken: req.newAccessToken
+      });
+    }
     
     res.json(recommendations.body);
   } catch (err) {
