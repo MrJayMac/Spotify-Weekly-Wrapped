@@ -11,7 +11,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 function WeeklyWrapped() {
   // Get authentication context
   const { token, refreshToken, updateToken, handleLogout } = useContext(AuthContext);
-  const [weeklyData, setWeeklyData] = useState(null);
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
   const [insights, setInsights] = useState([]);
@@ -20,9 +19,16 @@ function WeeklyWrapped() {
   const [animationComplete, setAnimationComplete] = useState(false);
 
   useEffect(() => {
+    // No need for fallback data anymore as we removed the intro slide
+
     // Fetch weekly analytics data
     fetch(`http://localhost:8000/weekly-analytics?access_token=${token}&refresh_token=${refreshToken}`)
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         // Check if we got a new access token
         if (data.newAccessToken) {
@@ -30,7 +36,8 @@ function WeeklyWrapped() {
           updateToken(data.newAccessToken);
         }
         
-        setWeeklyData(data);
+        // We don't need the weekly data stats anymore
+        console.log('Received weekly data from backend');
         
         // Fetch top tracks for the week
         return fetch(`http://localhost:8000/top-tracks?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&time_range=short_term`);
@@ -76,6 +83,9 @@ function WeeklyWrapped() {
       })
       .catch(error => {
         console.error('Error fetching weekly data:', error);
+        // Log error but continue with default empty state
+        console.log('Error fetching data from backend');
+        
         // Check if we need to reauthenticate
         if (error.needsReauthentication) {
           handleLogout();
@@ -146,26 +156,6 @@ function WeeklyWrapped() {
 
   // Define slides for the wrapped experience
   const slides = [
-    {
-      id: 'intro',
-      title: 'Your Weekly Wrapped',
-      content: (
-        <div className="slide-content intro-slide">
-          <h2>Your Week in Music</h2>
-          <div className="stats-highlight">
-            <div className="stat">
-              <h3>{weeklyData ? weeklyData.totalTracks : '0'}</h3>
-              <p>Tracks Played</p>
-            </div>
-            <div className="stat">
-              <h3>{weeklyData ? `${weeklyData.totalListeningTimeMinutes} min` : '0 min'}</h3>
-              <p>Listening Time</p>
-            </div>
-          </div>
-          <p className="slide-description">Scroll through to discover your weekly listening journey!</p>
-        </div>
-      )
-    },
     {
       id: 'top-tracks',
       title: 'Your Top Tracks',

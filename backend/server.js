@@ -264,9 +264,18 @@ app.get('/recommendations', refreshTokenIfNeeded, async (req, res) => {
     const seedTracks = topTracks.body.items.map(track => track.id);
     
     try {
+      // Check if we have valid seed tracks
+      if (!seedTracks || seedTracks.length === 0) {
+        throw new Error('No valid seed tracks available');
+      }
+      
+      // Log the seed tracks for debugging
+      console.log('Using seed tracks:', seedTracks.slice(0, 5));
+      
       // Get recommendations based on top tracks
+      // Use a more reliable approach with fewer seed tracks
       const recommendations = await spotifyApi.getRecommendations({
-        seed_tracks: seedTracks.slice(0, 5), // Ensure we only use up to 5 seed tracks
+        seed_tracks: seedTracks.slice(0, 2), // Use fewer seed tracks to reduce chance of errors
         limit: 20
       });
       
@@ -311,8 +320,28 @@ app.get('/recommendations', refreshTokenIfNeeded, async (req, res) => {
 app.get('/weekly-analytics', async (req, res) => {
   const { access_token, refresh_token } = req.query;
   
+  // Define consistent mock data
+  const mockData = {
+    totalTracks: 147,
+    topArtists: [
+      { name: 'The Weeknd', count: 15 },
+      { name: 'Dua Lipa', count: 12 },
+      { name: 'Kendrick Lamar', count: 10 },
+      { name: 'Taylor Swift', count: 8 },
+      { name: 'Arctic Monkeys', count: 7 }
+    ],
+    topTracks: [
+      { track_id: '1', track_name: 'Blinding Lights', artist_name: 'The Weeknd', count: 5, album_image: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' },
+      { track_id: '2', track_name: 'Levitating', artist_name: 'Dua Lipa', count: 4, album_image: 'https://i.scdn.co/image/ab67616d0000b273d4daf28d55fe4197ede848be' },
+      { track_id: '3', track_name: 'HUMBLE.', artist_name: 'Kendrick Lamar', count: 3, album_image: 'https://i.scdn.co/image/ab67616d0000b273b952c9f3f4d3cef28a7fa2ae' },
+      { track_id: '4', track_name: 'Anti-Hero', artist_name: 'Taylor Swift', count: 3, album_image: 'https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5' },
+      { track_id: '5', track_name: 'Do I Wanna Know?', artist_name: 'Arctic Monkeys', count: 2, album_image: 'https://i.scdn.co/image/ab67616d0000b273f0e2c75b2edf8f13f5dd3603' }
+    ],
+    totalListeningTimeMinutes: 529
+  };
+  
   try {
-    // Get listening history for the past week
+    // Try to get real listening history for the past week
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
@@ -325,25 +354,16 @@ app.get('/weekly-analytics', async (req, res) => {
     if (error || !data || data.length === 0) {
       console.log('No real listening data found, using consistent mock data');
       
-      // Return consistent mock data instead of random data
-      return res.json({
-        totalTracks: 147,
-        topArtists: [
-          { name: 'The Weeknd', count: 15 },
-          { name: 'Dua Lipa', count: 12 },
-          { name: 'Kendrick Lamar', count: 10 },
-          { name: 'Taylor Swift', count: 8 },
-          { name: 'Arctic Monkeys', count: 7 }
-        ],
-        topTracks: [
-          { track_id: '1', track_name: 'Blinding Lights', artist_name: 'The Weeknd', count: 5, album_image: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' },
-          { track_id: '2', track_name: 'Levitating', artist_name: 'Dua Lipa', count: 4, album_image: 'https://i.scdn.co/image/ab67616d0000b273d4daf28d55fe4197ede848be' },
-          { track_id: '3', track_name: 'HUMBLE.', artist_name: 'Kendrick Lamar', count: 3, album_image: 'https://i.scdn.co/image/ab67616d0000b273b952c9f3f4d3cef28a7fa2ae' },
-          { track_id: '4', track_name: 'Anti-Hero', artist_name: 'Taylor Swift', count: 3, album_image: 'https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5' },
-          { track_id: '5', track_name: 'Do I Wanna Know?', artist_name: 'Arctic Monkeys', count: 2, album_image: 'https://i.scdn.co/image/ab67616d0000b273f0e2c75b2edf8f13f5dd3603' }
-        ],
-        totalListeningTimeMinutes: 529
-      });
+      // Include new access token if we have one
+      if (req.newAccessToken) {
+        return res.json({
+          ...mockData,
+          newAccessToken: req.newAccessToken
+        });
+      }
+      
+      // Return consistent mock data
+      return res.json(mockData);
     }
     
     // If we have real data, process it
@@ -414,7 +434,7 @@ app.get('/weekly-analytics', async (req, res) => {
     console.error('Error generating weekly analytics:', err);
     
     // Return consistent mock data on error
-    res.json({
+    const mockData = {
       totalTracks: 147,
       topArtists: [
         { name: 'The Weeknd', count: 15 },
@@ -431,7 +451,17 @@ app.get('/weekly-analytics', async (req, res) => {
         { track_id: '5', track_name: 'Do I Wanna Know?', artist_name: 'Arctic Monkeys', count: 2, album_image: 'https://i.scdn.co/image/ab67616d0000b273f0e2c75b2edf8f13f5dd3603' }
       ],
       totalListeningTimeMinutes: 529
-    });
+    };
+    
+    // Include new access token if we have one
+    if (req.newAccessToken) {
+      return res.json({
+        ...mockData,
+        newAccessToken: req.newAccessToken
+      });
+    }
+    
+    res.json(mockData);
   }
 });
 
