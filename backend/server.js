@@ -23,17 +23,23 @@ const spotifyApi = new SpotifyWebApi({
 
 // Routes
 app.get('/login', (req, res) => {
+  // Enhanced scopes with all necessary permissions
   const scopes = [
     'user-read-private',
     'user-read-email',
-    'user-top-read',
+    'user-top-read',           // Essential for recommendations
     'user-read-recently-played',
     'user-library-read',
     'playlist-read-private',
-    'playlist-read-collaborative'
+    'playlist-read-collaborative',
+    'playlist-modify-public',   // For saving playlists
+    'playlist-modify-private'   // For saving playlists
   ];
   
-  const authorizeURL = spotifyApi.createAuthorizeURL(scopes);
+  // Generate a random state to protect against CSRF attacks
+  const state = Math.random().toString(36).substring(2, 15);
+  
+  const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
   res.json({ url: authorizeURL });
 });
 
@@ -238,83 +244,7 @@ app.get('/top-artists', refreshTokenIfNeeded, async (req, res) => {
   }
 });
 
-// Get recommendations based on user's top tracks
-app.get('/recommendations', refreshTokenIfNeeded, async (req, res) => {
-  try {
-    // First get user's top tracks
-    const topTracks = await spotifyApi.getMyTopTracks({ 
-      time_range: 'short_term', 
-      limit: 5 
-    });
-    
-    // Check if we have any top tracks
-    if (!topTracks.body.items || topTracks.body.items.length === 0) {
-      console.log('No top tracks found, returning mock recommendations');
-      return res.json({
-        tracks: [
-          { id: '1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' }] } },
-          { id: '2', name: 'Levitating', artists: [{ name: 'Dua Lipa' }], album: { name: 'Future Nostalgia', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273d4daf28d55fe4197ede848be' }] } },
-          { id: '3', name: 'Save Your Tears', artists: [{ name: 'The Weeknd' }], album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' }] } },
-          { id: '4', name: 'Stay', artists: [{ name: 'The Kid LAROI' }, { name: 'Justin Bieber' }], album: { name: 'Stay', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b2739048876d55ce8c9f18b73eac' }] } },
-          { id: '5', name: 'good 4 u', artists: [{ name: 'Olivia Rodrigo' }], album: { name: 'SOUR', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273a91c10fe9472d9bd89802e5a' }] } }
-        ]
-      });
-    }
-    
-    const seedTracks = topTracks.body.items.map(track => track.id);
-    
-    try {
-      // Check if we have valid seed tracks
-      if (!seedTracks || seedTracks.length === 0) {
-        throw new Error('No valid seed tracks available');
-      }
-      
-      // Log the seed tracks for debugging
-      console.log('Using seed tracks:', seedTracks.slice(0, 5));
-      
-      // Get recommendations based on top tracks
-      // Use a more reliable approach with fewer seed tracks
-      const recommendations = await spotifyApi.getRecommendations({
-        seed_tracks: seedTracks.slice(0, 2), // Use fewer seed tracks to reduce chance of errors
-        limit: 20
-      });
-      
-      // If we have a new token from the middleware, include it in the response
-      if (req.newAccessToken) {
-        return res.json({
-          ...recommendations.body,
-          newAccessToken: req.newAccessToken
-        });
-      }
-      
-      res.json(recommendations.body);
-    } catch (recError) {
-      console.error('Error getting recommendations from Spotify API:', recError);
-      // Return mock recommendations if Spotify API fails
-      return res.json({
-        tracks: [
-          { id: '1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' }] } },
-          { id: '2', name: 'Levitating', artists: [{ name: 'Dua Lipa' }], album: { name: 'Future Nostalgia', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273d4daf28d55fe4197ede848be' }] } },
-          { id: '3', name: 'Save Your Tears', artists: [{ name: 'The Weeknd' }], album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' }] } },
-          { id: '4', name: 'Stay', artists: [{ name: 'The Kid LAROI' }, { name: 'Justin Bieber' }], album: { name: 'Stay', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b2739048876d55ce8c9f18b73eac' }] } },
-          { id: '5', name: 'good 4 u', artists: [{ name: 'Olivia Rodrigo' }], album: { name: 'SOUR', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273a91c10fe9472d9bd89802e5a' }] } }
-        ]
-      });
-    }
-  } catch (err) {
-    console.error('Error getting top tracks:', err);
-    // Return mock recommendations if we can't get top tracks
-    res.json({
-      tracks: [
-        { id: '1', name: 'Blinding Lights', artists: [{ name: 'The Weeknd' }], album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' }] } },
-        { id: '2', name: 'Levitating', artists: [{ name: 'Dua Lipa' }], album: { name: 'Future Nostalgia', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273d4daf28d55fe4197ede848be' }] } },
-        { id: '3', name: 'Save Your Tears', artists: [{ name: 'The Weeknd' }], album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' }] } },
-        { id: '4', name: 'Stay', artists: [{ name: 'The Kid LAROI' }, { name: 'Justin Bieber' }], album: { name: 'Stay', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b2739048876d55ce8c9f18b73eac' }] } },
-        { id: '5', name: 'good 4 u', artists: [{ name: 'Olivia Rodrigo' }], album: { name: 'SOUR', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b273a91c10fe9472d9bd89802e5a' }] } }
-      ]
-    });
-  }
-});
+
 
 // Get weekly analytics
 app.get('/weekly-analytics', async (req, res) => {
@@ -434,25 +364,6 @@ app.get('/weekly-analytics', async (req, res) => {
     console.error('Error generating weekly analytics:', err);
     
     // Return consistent mock data on error
-    const mockData = {
-      totalTracks: 147,
-      topArtists: [
-        { name: 'The Weeknd', count: 15 },
-        { name: 'Dua Lipa', count: 12 },
-        { name: 'Kendrick Lamar', count: 10 },
-        { name: 'Taylor Swift', count: 8 },
-        { name: 'Arctic Monkeys', count: 7 }
-      ],
-      topTracks: [
-        { track_id: '1', track_name: 'Blinding Lights', artist_name: 'The Weeknd', count: 5, album_image: 'https://i.scdn.co/image/ab67616d0000b273c5649add07ed3720be9d5526' },
-        { track_id: '2', track_name: 'Levitating', artist_name: 'Dua Lipa', count: 4, album_image: 'https://i.scdn.co/image/ab67616d0000b273d4daf28d55fe4197ede848be' },
-        { track_id: '3', track_name: 'HUMBLE.', artist_name: 'Kendrick Lamar', count: 3, album_image: 'https://i.scdn.co/image/ab67616d0000b273b952c9f3f4d3cef28a7fa2ae' },
-        { track_id: '4', track_name: 'Anti-Hero', artist_name: 'Taylor Swift', count: 3, album_image: 'https://i.scdn.co/image/ab67616d0000b273bb54dde68cd23e2a268ae0f5' },
-        { track_id: '5', track_name: 'Do I Wanna Know?', artist_name: 'Arctic Monkeys', count: 2, album_image: 'https://i.scdn.co/image/ab67616d0000b273f0e2c75b2edf8f13f5dd3603' }
-      ],
-      totalListeningTimeMinutes: 529
-    };
-    
     // Include new access token if we have one
     if (req.newAccessToken) {
       return res.json({

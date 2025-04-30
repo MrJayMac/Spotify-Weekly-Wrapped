@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../App';
 import '../styles/Dashboard.css';
 
-function Dashboard({ token, onLogout }) {
+function Dashboard() {
+  // Get authentication context
+  const { token, refreshToken, updateToken, handleLogout } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
   const [recentTracks, setRecentTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
@@ -10,31 +13,53 @@ function Dashboard({ token, onLogout }) {
 
   useEffect(() => {
     // Fetch user profile
-    fetch(`http://localhost:8000/me?access_token=${token}`)
+    fetch(`http://localhost:8000/me?access_token=${token}&refresh_token=${refreshToken}`)
       .then(response => response.json())
       .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
         setProfile(data);
         
         // Fetch recently played tracks
-        return fetch(`http://localhost:8000/recently-played?access_token=${token}`);
+        return fetch(`http://localhost:8000/recently-played?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}`);
       })
       .then(response => response.json())
       .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
         setRecentTracks(data.items || []);
         
         // Fetch top artists
-        return fetch(`http://localhost:8000/top-artists?access_token=${token}&time_range=short_term`);
+        return fetch(`http://localhost:8000/top-artists?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&time_range=short_term`);
       })
       .then(response => response.json())
       .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
         setTopArtists(data.items || []);
         setIsLoading(false);
       })
       .catch(error => {
         console.error('Error fetching data:', error);
+        // Check if we need to reauthenticate
+        if (error.needsReauthentication) {
+          handleLogout();
+        }
         setIsLoading(false);
       });
-  }, [token]);
+  }, [token, refreshToken, updateToken, handleLogout]);
 
   if (isLoading) {
     return (
@@ -64,8 +89,7 @@ function Dashboard({ token, onLogout }) {
         <nav className="dashboard-nav">
           <Link to="/dashboard" className="nav-link active">Home</Link>
           <Link to="/weekly" className="nav-link">Weekly Wrapped</Link>
-          <Link to="/recommendations" className="nav-link">Recommendations</Link>
-          <button onClick={onLogout} className="logout-button">Logout</button>
+          <button onClick={handleLogout} className="logout-button">Logout</button>
         </nav>
       </header>
 
@@ -119,11 +143,7 @@ function Dashboard({ token, onLogout }) {
           </div>
         </section>
 
-        <section className="recommendation-preview">
-          <h2>Discover New Music</h2>
-          <p>We've created personalized recommendations based on your recent listening.</p>
-          <Link to="/recommendations" className="recommendation-button">View Recommendations</Link>
-        </section>
+
       </main>
 
       <footer className="dashboard-footer">

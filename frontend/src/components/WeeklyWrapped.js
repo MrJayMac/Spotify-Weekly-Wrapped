@@ -309,19 +309,6 @@ function WeeklyWrapped() {
           </div>
         </div>
       )
-    },
-    {
-      id: 'recommendations',
-      title: 'Recommendations',
-      content: (
-        <div className="slide-content">
-          <h2>Based on Your Week</h2>
-          <p>We've created personalized recommendations just for you.</p>
-          <Link to="/recommendations" className="recommendations-button">
-            View Your Recommendations
-          </Link>
-        </div>
-      )
     }
   ];
 
