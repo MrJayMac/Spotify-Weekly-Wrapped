@@ -10,10 +10,41 @@ function Dashboard() {
   const [recentTracks, setRecentTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasFetchedRecentlyPlayed, setHasFetchedRecentlyPlayed] = useState(false);
 
   useEffect(() => {
-    // Fetch user profile
-    fetch(`http://localhost:8000/me?access_token=${token}&refresh_token=${refreshToken}`)
+    if (!hasFetchedRecentlyPlayed && token && refreshToken) {
+      // Fetch user profile and recently played tracks
+      fetch(`http://localhost:8000/me?access_token=${token}&refresh_token=${refreshToken}`)
+        .then(response => response.json())
+        .then(data => {
+          // Check if we got a new access token
+          if (data.newAccessToken) {
+            console.log('Received new access token');
+            updateToken(data.newAccessToken);
+          }
+          setProfile(data);
+
+          // Fetch recently played tracks
+          return fetch(`http://localhost:8000/recently-played?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}`);
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Check if we got a new access token
+          if (data.newAccessToken) {
+            console.log('Received new access token');
+            updateToken(data.newAccessToken);
+          }
+          setRecentTracks(data.items || []);
+          setHasFetchedRecentlyPlayed(true);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+    }
+  }, [token, refreshToken, updateToken, hasFetchedRecentlyPlayed]);
+
+  useEffect(() => {
+    // Fetch top artists
+    fetch(`http://localhost:8000/top-artists?access_token=${token}&refresh_token=${refreshToken}&time_range=short_term`)
       .then(response => response.json())
       .then(data => {
         // Check if we got a new access token
@@ -21,45 +52,14 @@ function Dashboard() {
           console.log('Received new access token');
           updateToken(data.newAccessToken);
         }
-        
-        setProfile(data);
-        
-        // Fetch recently played tracks
-        return fetch(`http://localhost:8000/recently-played?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}`);
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Check if we got a new access token
-        if (data.newAccessToken) {
-          console.log('Received new access token');
-          updateToken(data.newAccessToken);
-        }
-        
-        setRecentTracks(data.items || []);
-        
-        // Fetch top artists
-        return fetch(`http://localhost:8000/top-artists?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&time_range=short_term`);
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Check if we got a new access token
-        if (data.newAccessToken) {
-          console.log('Received new access token');
-          updateToken(data.newAccessToken);
-        }
-        
         setTopArtists(data.items || []);
         setIsLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching data:', error);
-        // Check if we need to reauthenticate
-        if (error.needsReauthentication) {
-          handleLogout();
-        }
+        console.error('Error fetching top artists:', error);
         setIsLoading(false);
       });
-  }, [token, refreshToken, updateToken, handleLogout]);
+  }, [token, refreshToken, updateToken]);
 
   if (isLoading) {
     return (
@@ -142,8 +142,6 @@ function Dashboard() {
             </div>
           </div>
         </section>
-
-
       </main>
 
       <footer className="dashboard-footer">

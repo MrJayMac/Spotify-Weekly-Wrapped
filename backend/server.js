@@ -161,8 +161,29 @@ app.get('/me', refreshTokenIfNeeded, async (req, res) => {
   }
 });
 
+// Use a request cache to prevent duplicate processing
+const requestCache = new Set();
+
 // Get user's recently played tracks
 app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
+  console.log('Endpoint /recently-played called');
+  
+  // Generate a unique request identifier using the access token
+  const requestId = req.query.access_token;
+  
+  // Check if this request has already been processed
+  if (requestCache.has(requestId)) {
+    console.log('Duplicate request detected, skipping processing');
+    return res.json({ items: [] }); // Return empty result for duplicate requests
+  }
+  
+  // Add this request to the cache
+  requestCache.add(requestId);
+  
+  // Set a timeout to remove the request from cache after 10 seconds
+  setTimeout(() => {
+    requestCache.delete(requestId);
+  }, 10000);
   try {
     const data = await spotifyApi.getMyRecentlyPlayedTracks({ limit: 50 });
     
@@ -177,12 +198,30 @@ app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
       duration_ms: item.track.duration_ms
     }));
     
-    // Store in Supabase
-    const { error } = await supabase
+    // Check for duplicate tracks before inserting into Supabase
+    const { data: existingTracks, error: fetchError } = await supabase
       .from('listening_history')
-      .insert(tracks);
+      .select('track_id')
+      .in('track_id', tracks.map(track => track.track_id));
     
-    if (error) console.error('Error storing listening history:', error);
+    if (fetchError) {
+      console.error('Error fetching existing tracks:', fetchError);
+    }
+    
+    const newTracks = tracks.filter(track => 
+      !existingTracks || !existingTracks.some(existing => existing.track_id === track.track_id)
+    );
+    
+    if (newTracks.length > 0) {
+      console.log(`Adding ${newTracks.length} new tracks to listening history`);
+      const { error } = await supabase
+        .from('listening_history')
+        .insert(newTracks);
+      
+      if (error) console.error('Error storing listening history:', error);
+    } else {
+      console.log('No new tracks to add to listening history');
+    }
     
     // If we have a new token from the middleware, include it in the response
     if (req.newAccessToken) {
