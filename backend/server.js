@@ -9,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Log startup information
+console.log('🚀 Starting Spotify Weekly Wrapped backend server...');
+
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
@@ -89,8 +92,9 @@ async function refreshTokenIfNeeded(req, res, next) {
   
   try {
     // Try a simple API call to check if token is valid
-    await spotifyApi.getMe();
-    // If successful, continue with the original request
+    const userData = await spotifyApi.getMe();
+    // If successful, log success and continue with the original request
+    console.log(`✅ Successfully connected to Spotify API as ${userData.body.display_name || userData.body.id}`);
     next();
   } catch (err) {
     // Check if token expired error
@@ -121,6 +125,7 @@ async function refreshTokenIfNeeded(req, res, next) {
         // Add the new token to the request for the route handler
         req.newAccessToken = newAccessToken;
         
+        console.log('✅ Token refreshed successfully! New token is valid.');
         next();
       } catch (refreshErr) {
         console.error('Error refreshing token:', refreshErr);
@@ -379,5 +384,8 @@ app.get('/weekly-analytics', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log('🔗 Connected to Supabase database');
+  console.log('🎵 Spotify API client initialized');
+  console.log('🌐 Ready to accept connections!');
 });
