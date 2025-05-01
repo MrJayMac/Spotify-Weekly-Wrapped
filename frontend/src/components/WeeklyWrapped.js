@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../App';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from 'chart.js';
 import '../styles/WeeklyWrapped.css';
 
@@ -13,7 +13,6 @@ function WeeklyWrapped() {
   const { token, refreshToken, updateToken, handleLogout } = useContext(AuthContext);
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
-  const [insights, setInsights] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [animationComplete, setAnimationComplete] = useState(false);
@@ -65,14 +64,11 @@ function WeeklyWrapped() {
         
         setTopArtists(data.items || []);
         
-        // Generate insights (in a real app, these would come from the AI backend)
-        const generatedInsights = [
-          "You listened to more rock music this week than usual.",
-          "Your most active listening time was Tuesday evening.",
-          "You discovered 8 new artists this week!",
-          "Your musical mood shifted from energetic to relaxed throughout the week."
-        ];
-        setInsights(generatedInsights);
+        // In a real app, we would generate insights from the AI backend
+        // but we've removed this feature for now
+        
+        // In the new design, we're not displaying these insights directly
+        // but we're keeping the code for potential future use
         
         setIsLoading(false);
         
@@ -103,70 +99,157 @@ function WeeklyWrapped() {
   };
 
   // Mock data for charts
-  const genreData = {
+  const topGenresData = {
     labels: ['Pop', 'Rock', 'Hip Hop', 'Electronic', 'R&B'],
     datasets: [
       {
-        label: 'Genre Distribution',
+        label: 'Genres',
         data: [35, 25, 20, 15, 5],
         backgroundColor: [
-          'rgba(255, 99, 132, 0.6)',
-          'rgba(54, 162, 235, 0.6)',
-          'rgba(255, 206, 86, 0.6)',
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(153, 102, 255, 0.6)',
+          'rgba(255, 99, 132, 0.7)',
+          'rgba(54, 162, 235, 0.7)',
+          'rgba(255, 206, 86, 0.7)',
+          'rgba(75, 192, 192, 0.7)',
+          'rgba(153, 102, 255, 0.7)'
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)'
         ],
         borderWidth: 1,
       },
     ],
   };
 
-  const weekdayData = {
-    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    datasets: [
-      {
-        label: 'Listening Minutes by Day',
-        data: [45, 59, 80, 81, 56, 120, 90],
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
+  // We're not using these chart data in the new design, but keeping them for reference
+  // const weekdayData = {
+  //   labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  //   datasets: [
+  //     {
+  //       label: 'Minutes Listened',
+  //       data: [45, 59, 80, 81, 56, 95, 40],
+  //       backgroundColor: 'rgba(75, 192, 192, 0.7)',
+  //       borderColor: 'rgba(75, 192, 192, 1)',
+  //       borderWidth: 1,
+  //     },
+  //   ],
+  // };
 
-  const moodData = {
-    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    datasets: [
-      {
-        label: 'Energy',
-        data: [65, 59, 80, 81, 56, 55, 40],
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        tension: 0.3,
-      },
-      {
-        label: 'Happiness',
-        data: [28, 48, 40, 19, 86, 27, 90],
-        borderColor: 'rgb(53, 162, 235)',
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-        tension: 0.3,
-      },
-    ],
+  // const moodData = {
+  //   labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  //   datasets: [
+  //     {
+  //       label: 'Energy',
+  //       data: [65, 59, 80, 81, 56, 55, 70],
+  //       fill: false,
+  //       backgroundColor: 'rgba(255, 99, 132, 0.7)',
+  //       borderColor: 'rgba(255, 99, 132, 1)',
+  //       tension: 0.4,
+  //     },
+  //     {
+  //       label: 'Happiness',
+  //       data: [45, 70, 65, 50, 75, 85, 90],
+  //       fill: false,
+  //       backgroundColor: 'rgba(54, 162, 235, 0.7)',
+  //       borderColor: 'rgba(54, 162, 235, 1)',
+  //       tension: 0.4,
+  //     },
+  //   ],
+  // };
+
+  // Define 10 fixed music types with descriptions
+  const musicTypes = [
+    {
+      type: 'Sonic Explorer',
+      description: 'You seek out diverse sounds and genres, constantly expanding your musical horizons. Your playlists are a journey through different musical landscapes.'
+    },
+    {
+      type: 'Rhythm Devotee',
+      description: 'You gravitate toward beat-driven music with strong rhythmic elements. The percussion and groove are what move you most in a song.'
+    },
+    {
+      type: 'Lyrical Connoisseur',
+      description: 'You value meaningful lyrics and storytelling. The message and poetry in music speak to you on a deep level.'
+    },
+    {
+      type: 'Mood Architect',
+      description: 'You curate music to shape your emotional environment. Your listening habits reflect a desire to create specific atmospheres.'
+    },
+    {
+      type: 'Nostalgic Soul',
+      description: 'You connect with music that evokes the past. Classic sounds and retro vibes resonate with your appreciation for musical heritage.'
+    },
+    {
+      type: 'Energy Seeker',
+      description: 'You\'re drawn to high-energy tracks that fuel your day. Upbeat tempos and dynamic production keep your enthusiasm high.'
+    },
+    {
+      type: 'Melodic Dreamer',
+      description: 'You appreciate beautiful melodies and harmonies that transport you to another world. The tonal journey of a song captivates you.'
+    },
+    {
+      type: 'Genre Loyalist',
+      description: 'You have deep appreciation for specific genres, diving into their nuances and subgenres. Your expertise in your preferred styles is impressive.'
+    },
+    {
+      type: 'Ambient Enthusiast',
+      description: 'You enjoy atmospheric and textural music that creates a sonic space. Subtle details and soundscapes capture your attention.'
+    },
+    {
+      type: 'Emotional Resonator',
+      description: 'You connect with music that expresses deep emotions. Songs that capture the complexity of human feelings speak to your soul.'
+    }
+  ];
+
+  // Get a music type based on the user's listening habits
+  // In a real app, this would analyze actual listening data
+  // For now, we'll just pick a random type for demonstration
+  const getMusicType = () => {
+    const randomIndex = Math.floor(Math.random() * musicTypes.length);
+    return musicTypes[randomIndex];
   };
+  
+  const musicType = getMusicType();
 
   // Define slides for the wrapped experience
   const slides = [
     {
-      id: 'top-tracks',
-      title: 'Your Top Tracks',
+      id: 'recap-intro',
+      title: 'Weekly Recap',
       content: (
-        <div className="slide-content">
-          <h2>Your Top Tracks This Week</h2>
+        <div className="slide-content recap-slide">
+          <div className="recap-header">[WEEKLY] RECAP</div>
+          <div className="recap-footer">RECAP</div>
+        </div>
+      )
+    },
+    {
+      id: 'minutes-listened',
+      title: 'Minutes Listened',
+      content: (
+        <div className="slide-content minutes-slide">
+          <h2>My Minutes Listened</h2>
+          <div className="big-stat">XX,XXX</div>
+          <p className="stat-description">Biggest listening day: June 17 with 347 minutes</p>
+          <p className="stat-context">Top 8% of listeners worldwide</p>
+          <div className="recap-footer">RECAP</div>
+        </div>
+      )
+    },
+    {
+      id: 'top-tracks',
+      title: 'Top Tracks',
+      content: (
+        <div className="slide-content tracks-slide">
+          <h2>My Top Songs</h2>
           <div className="top-tracks-list">
             {topTracks.slice(0, 5).map((track, index) => (
-              <div key={index} className="top-track-item">
+              <div key={index} className="track-item">
                 <div className="track-rank">{index + 1}</div>
-                {track.album.images && track.album.images[0] && (
+                {track.album && track.album.images && track.album.images[0] && (
                   <img 
                     src={track.album.images[0].url} 
                     alt={track.name} 
@@ -175,23 +258,25 @@ function WeeklyWrapped() {
                 )}
                 <div className="track-info">
                   <h3>{track.name}</h3>
-                  <p>{track.artists.map(artist => artist.name).join(', ')}</p>
+                  <p>{track.artists ? track.artists.map(artist => artist.name).join(', ') : 'Unknown Artist'}</p>
                 </div>
               </div>
             ))}
           </div>
+          <div className="recap-footer">RECAP</div>
         </div>
       )
     },
     {
       id: 'top-artists',
-      title: 'Your Top Artists',
+      title: 'Top Artists',
       content: (
-        <div className="slide-content">
-          <h2>Your Top Artists This Week</h2>
-          <div className="top-artists-grid">
+        <div className="slide-content artists-slide">
+          <h2>My Top Artists</h2>
+          <div className="top-artists-list">
             {topArtists.slice(0, 5).map((artist, index) => (
-              <div key={index} className="top-artist-card">
+              <div key={index} className="artist-item">
+                <div className="artist-rank">{index + 1}</div>
                 {artist.images && artist.images[0] && (
                   <img 
                     src={artist.images[0].url} 
@@ -199,114 +284,81 @@ function WeeklyWrapped() {
                     className="artist-image" 
                   />
                 )}
-                <h3>{artist.name}</h3>
-                <p className="artist-rank">#{index + 1}</p>
+                <div className="artist-info">
+                  <h3>{artist.name}</h3>
+                </div>
               </div>
             ))}
           </div>
+          <div className="recap-footer">RECAP</div>
+        </div>
+      )
+    },
+
+    {
+      id: 'music-type',
+      title: 'Music Type',
+      content: (
+        <div className="slide-content style-word-slide">
+          <h2>Your Music Type</h2>
+          <div className="style-word-container">
+            <div className="style-word">{musicType.type}</div>
+            <p className="style-description">{musicType.description}</p>
+          </div>
+          <div className="music-type-footer">
+            <p>Based on your listening patterns and preferences</p>
+          </div>
+          <div className="recap-footer">RECAP</div>
         </div>
       )
     },
     {
-      id: 'genres',
+      id: 'genre-breakdown',
       title: 'Genre Breakdown',
       content: (
-        <div className="slide-content">
-          <h2>Your Genre Mix</h2>
+        <div className="slide-content genre-slide">
+          <h2>My Top Genres</h2>
           <div className="chart-container">
             <Pie 
-              data={genreData} 
-              options={{ 
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                    labels: {
-                      boxWidth: 12,
-                      padding: 15,
-                      color: '#fff'
-                    }
-                  }
-                },
-                layout: {
-                  padding: 20
-                }
-              }} 
-            />
-          </div>
-          <p className="chart-description">Pop dominated your week with 35% of your listening time.</p>
-        </div>
-      )
-    },
-    {
-      id: 'listening-patterns',
-      title: 'Listening Patterns',
-      content: (
-        <div className="slide-content">
-          <h2>When You Listened</h2>
-          <div className="chart-container">
-            <Bar 
-              data={weekdayData} 
+              data={topGenresData} 
               options={{
                 responsive: true,
                 plugins: {
                   legend: {
-                    position: 'top',
+                    position: 'right',
                   },
                   title: {
-                    display: true,
-                    text: 'Listening Minutes by Day of Week'
+                    display: false
                   }
                 }
               }} 
             />
           </div>
-          <p className="chart-description">Saturday was your most active listening day this week.</p>
+          <div className="recap-footer">RECAP</div>
         </div>
       )
     },
     {
-      id: 'mood-journey',
-      title: 'Mood Journey',
+      id: 'listening-stats',
+      title: 'Listening Stats',
       content: (
-        <div className="slide-content">
-          <h2>Your Mood Journey</h2>
-          <div className="chart-container">
-            <Line 
-              data={moodData} 
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                  },
-                  title: {
-                    display: true,
-                    text: 'Music Mood Throughout the Week'
-                  }
-                }
-              }} 
-            />
+        <div className="slide-content stats-slide">
+          <h2>My Weekly Stats</h2>
+          <div className="stats-grid">
+            <div className="stat-box">
+              <div className="stat-label">Top Artist</div>
+              <div className="stat-value">{topArtists.length > 0 ? topArtists[0].name : 'Unknown'}</div>
+            </div>
+            <div className="stat-box">
+              <div className="stat-label">Top Song</div>
+              <div className="stat-value">{topTracks.length > 0 ? topTracks[0].name : 'Unknown'}</div>
+            </div>
+            <div className="stat-box">
+              <div className="stat-label">Minutes Listened</div>
+              <div className="stat-value">XX,XXX</div>
+            </div>
           </div>
-          <p className="chart-description">Your music choices got happier toward the weekend!</p>
-        </div>
-      )
-    },
-    {
-      id: 'insights',
-      title: 'AI Insights',
-      content: (
-        <div className="slide-content">
-          <h2>AI-Generated Insights</h2>
-          <div className="insights-list">
-            {insights.map((insight, index) => (
-              <div key={index} className="insight-card">
-                <div className="insight-icon">💡</div>
-                <p>{insight}</p>
-              </div>
-            ))}
-          </div>
+          <div className="recap-footer">RECAP</div>
         </div>
       )
     }
