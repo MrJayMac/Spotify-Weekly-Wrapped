@@ -185,6 +185,27 @@ app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
     requestCache.delete(requestId);
   }, 10000);
   try {
+    // Get the most recent Sunday at midnight UTC
+    const currentDate = new Date();
+    const dayOfWeek = currentDate.getUTCDay(); // 0 is Sunday
+    const daysToLastSunday = dayOfWeek === 0 ? 7 : dayOfWeek; // If today is Sunday, go back 7 days
+    const lastSunday = new Date(currentDate);
+    lastSunday.setUTCDate(currentDate.getUTCDate() - daysToLastSunday + 7); // Go to the most recent Sunday
+    lastSunday.setUTCHours(0, 0, 0, 0); // Set to midnight UTC
+    
+    // Delete tracks from before the most recent Sunday midnight
+    console.log(`Cleaning up tracks played before ${lastSunday.toISOString()}`);
+    const { error: deleteError, count: deletedCount } = await supabase
+      .from('listening_history')
+      .delete()
+      .lt('played_at', lastSunday.toISOString());
+    
+    if (deleteError) {
+      console.error('Error deleting old tracks:', deleteError);
+    } else if (deletedCount > 0) {
+      console.log(`Deleted ${deletedCount} tracks from before the current week`);
+    }
+    
     const data = await spotifyApi.getMyRecentlyPlayedTracks({ limit: 50 });
     
     // Store listening data in Supabase
@@ -198,17 +219,24 @@ app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
       duration_ms: item.track.duration_ms
     }));
     
+    // Filter tracks to only include those from the current week
+    const currentWeekTracks = tracks.filter(track => new Date(track.played_at) >= lastSunday);
+    
+    if (currentWeekTracks.length < tracks.length) {
+      console.log(`Filtered out ${tracks.length - currentWeekTracks.length} tracks from before the current week`);
+    }
+    
     // Check for duplicate tracks before inserting into Supabase
     const { data: existingTracks, error: fetchError } = await supabase
       .from('listening_history')
       .select('track_id')
-      .in('track_id', tracks.map(track => track.track_id));
+      .in('track_id', currentWeekTracks.map(track => track.track_id));
     
     if (fetchError) {
       console.error('Error fetching existing tracks:', fetchError);
     }
     
-    const newTracks = tracks.filter(track => 
+    const newTracks = currentWeekTracks.filter(track => 
       !existingTracks || !existingTracks.some(existing => existing.track_id === track.track_id)
     );
     
