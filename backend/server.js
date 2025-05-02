@@ -190,7 +190,7 @@ app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
     const dayOfWeek = currentDate.getUTCDay(); // 0 is Sunday
     const daysToLastSunday = dayOfWeek === 0 ? 7 : dayOfWeek; // If today is Sunday, go back 7 days
     const lastSunday = new Date(currentDate);
-    lastSunday.setUTCDate(currentDate.getUTCDate() - daysToLastSunday + 7); // Go to the most recent Sunday
+    lastSunday.setUTCDate(currentDate.getUTCDate() - daysToLastSunday); // Go to the most recent Sunday (in the past)
     lastSunday.setUTCHours(0, 0, 0, 0); // Set to midnight UTC
     
     // Delete tracks from before the most recent Sunday midnight
