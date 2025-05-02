@@ -56,10 +56,17 @@ app.get('/callback', async (req, res) => {
     spotifyApi.setAccessToken(data.body['access_token']);
     spotifyApi.setRefreshToken(data.body['refresh_token']);
     
-    // Store tokens in Supabase (in a real app, you'd associate this with a user)
+    // Get user profile to get the user ID
+    const userProfile = await spotifyApi.getMe();
+    const userId = userProfile.body.id; // Spotify user ID
+    
+    console.log(`User authenticated: ${userId}`);
+    
+    // Store tokens in Supabase with user ID
     const { error } = await supabase
       .from('user_tokens')
       .insert({
+        user_id: userId,
         access_token: data.body['access_token'],
         refresh_token: data.body['refresh_token'],
         expires_in: data.body['expires_in'],
@@ -68,8 +75,8 @@ app.get('/callback', async (req, res) => {
     
     if (error) console.error('Error storing tokens:', error);
     
-    // Redirect to frontend with tokens
-    res.redirect(`http://localhost:3000?access_token=${data.body['access_token']}&refresh_token=${data.body['refresh_token']}`);
+    // Redirect to frontend with tokens and user ID
+    res.redirect(`http://localhost:3000?access_token=${data.body['access_token']}&refresh_token=${data.body['refresh_token']}&user_id=${userId}`);
   } catch (err) {
     console.error('Error getting tokens:', err);
     res.redirect('http://localhost:3000?error=auth_error');
@@ -168,6 +175,14 @@ const requestCache = new Set();
 app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
   console.log('Endpoint /recently-played called');
   
+  // Get user ID from query parameters
+  const userId = req.query.user_id;
+  if (!userId) {
+    console.log('Warning: No user_id provided in request');
+  } else {
+    console.log(`Processing recently played tracks for user: ${userId}`);
+  }
+  
   // Generate a unique request identifier using the access token
   const requestId = req.query.access_token;
   
@@ -210,6 +225,7 @@ app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
     
     // Store listening data in Supabase
     const tracks = data.body.items.map(item => ({
+      user_id: userId, // Include user ID in each track record
       track_id: item.track.id,
       track_name: item.track.name,
       artist_name: item.track.artists[0].name,
@@ -226,10 +242,11 @@ app.get('/recently-played', refreshTokenIfNeeded, async (req, res) => {
       console.log(`Filtered out ${tracks.length - currentWeekTracks.length} tracks from before the current week`);
     }
     
-    // Check for duplicate tracks before inserting into Supabase
+    // Check for duplicate tracks before inserting into Supabase (for this user)
     const { data: existingTracks, error: fetchError } = await supabase
       .from('listening_history')
       .select('track_id')
+      .eq('user_id', userId)
       .in('track_id', currentWeekTracks.map(track => track.track_id));
     
     if (fetchError) {
@@ -445,6 +462,138 @@ app.get('/weekly-analytics', async (req, res) => {
     }
     
     res.json(mockData);
+  }
+});
+
+// Get top listening day for a user
+app.get('/top-listening-day', refreshTokenIfNeeded, async (req, res) => {
+  // Get user ID from query parameters
+  const userId = req.query.user_id;
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+  
+  console.log(`Calculating top listening day for user: ${userId}`);
+  
+  try {
+    // Get the most recent Sunday at midnight UTC (same calculation as in recently-played)
+    const currentDate = new Date();
+    const dayOfWeek = currentDate.getUTCDay(); // 0 is Sunday
+    const daysToLastSunday = dayOfWeek === 0 ? 7 : dayOfWeek; // If today is Sunday, go back 7 days
+    const lastSunday = new Date(currentDate);
+    lastSunday.setUTCDate(currentDate.getUTCDate() - daysToLastSunday); // Go to the most recent Sunday (in the past)
+    lastSunday.setUTCHours(0, 0, 0, 0); // Set to midnight UTC
+    
+    // Query listening history for this user since last Sunday
+    const { data, error } = await supabase
+      .from('listening_history')
+      .select('played_at, duration_ms')
+      .eq('user_id', userId)
+      .gte('played_at', lastSunday.toISOString());
+    
+    if (error) {
+      console.error('Error fetching listening history:', error);
+      return res.status(500).json({ error: 'Failed to fetch listening history' });
+    }
+    
+    // Group tracks by day of the week and sum up durations
+    const dayTotals = {};
+    
+    console.log(`Processing ${data.length} tracks for user ${userId}`);
+    
+    data.forEach(track => {
+      const playedDate = new Date(track.played_at);
+      const dayName = playedDate.toLocaleDateString('en-US', { weekday: 'long' }); // e.g., 'Monday'
+      
+      if (!dayTotals[dayName]) {
+        dayTotals[dayName] = 0;
+      }
+      
+      dayTotals[dayName] += track.duration_ms || 0;
+    });
+    
+    console.log('Day totals:', JSON.stringify(dayTotals));
+    
+    // Find the day with the highest total
+    let topDay = null;
+    let topDayMinutes = 0;
+    
+    console.log('Calculating minutes per day:');
+    Object.entries(dayTotals).forEach(([day, durationMs]) => {
+      const minutes = Math.round(durationMs / 60000);
+      console.log(`- ${day}: ${minutes} minutes`);
+      if (minutes > topDayMinutes) {
+        topDay = day;
+        topDayMinutes = minutes;
+      }
+    });
+    
+    if (!topDay) {
+      console.log('No listening data found for any day, defaulting to Sunday');
+      topDay = 'Sunday';
+    }
+    
+    console.log(`Top listening day for user ${userId}: ${topDay} with ${topDayMinutes} minutes`);
+    
+    // Return the top listening day info
+    res.json({
+      topDay: topDay || 'Sunday', // Default to Sunday if no data
+      topDayMinutes: topDayMinutes,
+      newAccessToken: req.newAccessToken // Include new token if we have one
+    });
+  } catch (err) {
+    console.error('Error calculating top listening day:', err);
+    res.status(500).json({ error: 'Failed to calculate top listening day' });
+  }
+});
+
+// Get total listening time for a user
+app.get('/total-listening-time', refreshTokenIfNeeded, async (req, res) => {
+  // Get user ID from query parameters
+  const userId = req.query.user_id;
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+  
+  console.log(`Calculating total listening time for user: ${userId}`);
+  
+  try {
+    // Get the most recent Sunday at midnight UTC (same calculation as in recently-played)
+    const currentDate = new Date();
+    const dayOfWeek = currentDate.getUTCDay(); // 0 is Sunday
+    const daysToLastSunday = dayOfWeek === 0 ? 7 : dayOfWeek; // If today is Sunday, go back 7 days
+    const lastSunday = new Date(currentDate);
+    lastSunday.setUTCDate(currentDate.getUTCDate() - daysToLastSunday); // Go to the most recent Sunday (in the past)
+    lastSunday.setUTCHours(0, 0, 0, 0); // Set to midnight UTC
+    
+    // Query listening history for this user since last Sunday
+    const { data, error } = await supabase
+      .from('listening_history')
+      .select('duration_ms')
+      .eq('user_id', userId)
+      .gte('played_at', lastSunday.toISOString());
+    
+    if (error) {
+      console.error('Error fetching listening history:', error);
+      return res.status(500).json({ error: 'Failed to fetch listening history' });
+    }
+    
+    // Calculate total duration in milliseconds
+    const totalDurationMs = data.reduce((sum, track) => sum + (track.duration_ms || 0), 0);
+    
+    // Convert to minutes (rounded to nearest whole number)
+    const totalMinutes = Math.round(totalDurationMs / 60000);
+    
+    console.log(`Total listening time for user ${userId}: ${totalMinutes} minutes`);
+    
+    // Return the total listening time
+    res.json({
+      totalMinutes,
+      newAccessToken: req.newAccessToken // Include new token if we have one
+    });
+  } catch (err) {
+    console.error('Error calculating total listening time:', err);
+    res.status(500).json({ error: 'Failed to calculate total listening time' });
   }
 });
 

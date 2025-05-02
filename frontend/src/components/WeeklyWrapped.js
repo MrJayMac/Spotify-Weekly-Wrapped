@@ -10,9 +10,11 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 function WeeklyWrapped() {
   // Get authentication context
-  const { token, refreshToken, updateToken, handleLogout } = useContext(AuthContext);
+  const { token, refreshToken, userId, updateToken, handleLogout } = useContext(AuthContext);
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
+  const [totalMinutesListened, setTotalMinutesListened] = useState(0);
+  const [topListeningDay, setTopListeningDay] = useState({ day: 'Sunday', minutes: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [animationComplete, setAnimationComplete] = useState(false);
@@ -21,7 +23,7 @@ function WeeklyWrapped() {
     // No need for fallback data anymore as we removed the intro slide
 
     // Fetch weekly analytics data
-    fetch(`http://localhost:8000/weekly-analytics?access_token=${token}&refresh_token=${refreshToken}`)
+    fetch(`http://localhost:8000/weekly-analytics?access_token=${token}&refresh_token=${refreshToken}&user_id=${userId}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -64,11 +66,46 @@ function WeeklyWrapped() {
         
         setTopArtists(data.items || []);
         
-        // In a real app, we would generate insights from the AI backend
-        // but we've removed this feature for now
+        // Fetch total listening time for the user
+        return fetch(`http://localhost:8000/total-listening-time?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&user_id=${userId}`);
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
         
-        // In the new design, we're not displaying these insights directly
-        // but we're keeping the code for potential future use
+        // Set the total minutes listened
+        setTotalMinutesListened(data.totalMinutes || 0);
+        console.log(`Total minutes listened: ${data.totalMinutes || 0}`);
+        
+        // Fetch top listening day for the user
+        console.log(`Fetching top listening day for user: ${userId}`);
+        return fetch(`http://localhost:8000/top-listening-day?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&user_id=${userId}`);
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Check if we got a new access token
+        if (data.newAccessToken) {
+          console.log('Received new access token');
+          updateToken(data.newAccessToken);
+        }
+        
+        // Set the top listening day
+        console.log('Top listening day response:', data);
+        
+        const day = data.topDay || 'Sunday';
+        const minutes = data.topDayMinutes || 0;
+        
+        setTopListeningDay({
+          day: day,
+          minutes: minutes
+        });
+        
+        console.log(`📊 Top listening day set to: ${day} with ${minutes} minutes`);
+        console.log(`📊 This will be displayed as: "Biggest listening day: ${day} with ${minutes} minutes"`);
         
         setIsLoading(false);
         
@@ -88,7 +125,7 @@ function WeeklyWrapped() {
         }
         setIsLoading(false);
       });
-  }, [token, refreshToken, updateToken, handleLogout]);
+  }, [token, refreshToken, userId, updateToken, handleLogout]);
 
   const nextSlide = () => {
     setCurrentSlide(prev => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -232,9 +269,8 @@ function WeeklyWrapped() {
       content: (
         <div className="slide-content minutes-slide">
           <h2>My Minutes Listened</h2>
-          <div className="big-stat">XX,XXX</div>
-          <p className="stat-description">Biggest listening day: June 17 with 347 minutes</p>
-          <p className="stat-context">Top 8% of listeners worldwide</p>
+          <div className="big-stat">{totalMinutesListened.toLocaleString()}</div>
+          <p className="stat-description">Biggest listening day: {topListeningDay.day} with {topListeningDay.minutes.toLocaleString()} minutes</p>
           <div className="recap-footer">RECAP</div>
         </div>
       )
@@ -355,7 +391,7 @@ function WeeklyWrapped() {
             </div>
             <div className="stat-box">
               <div className="stat-label">Minutes Listened</div>
-              <div className="stat-value">XX,XXX</div>
+              <div className="stat-value">{totalMinutesListened.toLocaleString()}</div>
             </div>
           </div>
           <div className="recap-footer">RECAP</div>

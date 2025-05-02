@@ -5,7 +5,7 @@ import '../styles/Dashboard.css';
 
 function Dashboard() {
   // Get authentication context
-  const { token, refreshToken, updateToken, handleLogout } = useContext(AuthContext);
+  const { token, refreshToken, userId, updateToken, handleLogout } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
   const [recentTracks, setRecentTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
@@ -26,7 +26,7 @@ function Dashboard() {
           setProfile(data);
 
           // Fetch recently played tracks
-          return fetch(`http://localhost:8000/recently-played?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}`);
+          return fetch(`http://localhost:8000/recently-played?access_token=${data.newAccessToken || token}&refresh_token=${refreshToken}&user_id=${userId}`);
         })
         .then(response => response.json())
         .then(data => {
@@ -40,7 +40,7 @@ function Dashboard() {
         })
         .catch(error => console.error('Error fetching data:', error));
     }
-  }, [token, refreshToken, updateToken, hasFetchedRecentlyPlayed]);
+  }, [token, refreshToken, userId, updateToken, hasFetchedRecentlyPlayed]);
 
   useEffect(() => {
     // Fetch top artists

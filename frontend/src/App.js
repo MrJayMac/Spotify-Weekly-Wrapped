@@ -11,12 +11,14 @@ export const AuthContext = createContext(null);
 function App() {
   const [token, setToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
+  const [userId, setUserId] = useState(null);
   
   useEffect(() => {
     // Check for token in URL params (after Spotify auth redirect)
     const queryParams = new URLSearchParams(window.location.search);
     const accessToken = queryParams.get('access_token');
     const refreshTokenParam = queryParams.get('refresh_token');
+    const userIdParam = queryParams.get('user_id');
     
     if (accessToken) {
       setToken(accessToken);
@@ -26,6 +28,11 @@ function App() {
         setRefreshToken(refreshTokenParam);
         localStorage.setItem('spotify_refresh_token', refreshTokenParam);
       }
+      if (userIdParam) {
+        setUserId(userIdParam);
+        localStorage.setItem('spotify_user_id', userIdParam);
+        console.log('User ID stored:', userIdParam);
+      }
       
       // Clean up URL
       window.history.replaceState({}, document.title, '/');
@@ -33,11 +40,15 @@ function App() {
       // Check if we have tokens in localStorage
       const storedToken = localStorage.getItem('spotify_access_token');
       const storedRefreshToken = localStorage.getItem('spotify_refresh_token');
+      const storedUserId = localStorage.getItem('spotify_user_id');
       if (storedToken) {
         setToken(storedToken);
       }
       if (storedRefreshToken) {
         setRefreshToken(storedRefreshToken);
+      }
+      if (storedUserId) {
+        setUserId(storedUserId);
       }
     }
   }, []);
@@ -51,12 +62,14 @@ function App() {
   const handleLogout = () => {
     setToken(null);
     setRefreshToken(null);
+    setUserId(null);
     localStorage.removeItem('spotify_access_token');
     localStorage.removeItem('spotify_refresh_token');
+    localStorage.removeItem('spotify_user_id');
   };
   
   return (
-    <AuthContext.Provider value={{ token, refreshToken, updateToken, handleLogout }}>
+    <AuthContext.Provider value={{ token, refreshToken, userId, updateToken, handleLogout }}>
       <Router>
         <div className="App">
           <Routes>
