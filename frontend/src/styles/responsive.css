@@ -1,0 +1,165 @@
+/* Responsive CSS for Spotify Weekly Wrapped
+ * This file contains global responsive styles that will be applied across the application
+ */
+
+/* Base responsive variables */
+:root {
+  --container-padding-mobile: 15px;
+  --container-padding-tablet: 30px;
+  --container-padding-desktop: 40px;
+}
+
+/* Mobile-first media queries */
+/* Extra small devices (phones, 576px and down) */
+/* Default styles are mobile-first */
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {
+  .slide-content h2 {
+    font-size: 2.2rem;
+  }
+  
+  .big-stat {
+    font-size: 5.5rem;
+  }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+  .dashboard-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .login-card {
+    max-width: 600px;
+  }
+  
+  .slide-inner {
+    padding: 60px 30px;
+  }
+  
+  .slide-content h2 {
+    font-size: 2.5rem;
+  }
+  
+  .big-stat {
+    font-size: 6rem;
+  }
+  
+  .recap-header {
+    font-size: 4.5rem;
+  }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+  .dashboard-overview {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .highlight-card {
+    padding: 40px;
+  }
+  
+  .slide-inner {
+    padding: 80px 40px;
+  }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  .dashboard-content {
+    padding: 40px;
+  }
+  
+  .slide-content {
+    max-width: 900px;
+  }
+}
+
+/* Responsive typography */
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 576px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1400px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+/* Responsive layout helpers */
+.responsive-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: var(--container-padding-mobile);
+  padding-right: var(--container-padding-mobile);
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    padding-left: var(--container-padding-tablet);
+    padding-right: var(--container-padding-tablet);
+  }
+}
+
+@media (min-width: 992px) {
+  .responsive-container {
+    padding-left: var(--container-padding-desktop);
+    padding-right: var(--container-padding-desktop);
+  }
+}
+
+/* Responsive grid system */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+@media (min-width: 576px) {
+  .responsive-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 25px;
+  }
+}
+
+@media (min-width: 992px) {
+  .responsive-grid {
+    grid-template-columns: repeat(12, 1fr);
+    gap: 30px;
+  }
+}
+
+/* Responsive images */
+.responsive-img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive tables */
+.responsive-table {
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .responsive-table {
+    display: table;
+  }
+}

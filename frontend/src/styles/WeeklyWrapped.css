@@ -63,7 +63,7 @@
 .slide-inner {
   height: 100%;
   width: 100%;
-  padding: 40px 20px;
+  padding: 20px 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -75,12 +75,24 @@
   transform: translateZ(0);
 }
 
+@media (min-width: 576px) {
+  .slide-inner {
+    padding: 30px 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  .slide-inner {
+    padding: 40px 20px;
+  }
+}
+
 .slide.active {
   opacity: 1;
 }
 
 .slide-content {
-  max-width: 800px;
+  max-width: 100%;
   width: 100%;
   text-align: center;
   animation: fadeIn 0.5s ease;
@@ -88,6 +100,24 @@
   transform: translateZ(0);
   position: relative;
   overflow: hidden;
+}
+
+@media (min-width: 576px) {
+  .slide-content {
+    max-width: 500px;
+  }
+}
+
+@media (min-width: 768px) {
+  .slide-content {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 992px) {
+  .slide-content {
+    max-width: 800px;
+  }
 }
 
 /* Slide-specific styles */
@@ -100,11 +130,29 @@
 }
 
 .recap-header {
-  font-size: 4rem;
+  font-size: 2.5rem;
   font-weight: 900;
   margin-bottom: 20px;
   text-transform: uppercase;
   text-align: center;
+}
+
+@media (min-width: 576px) {
+  .recap-header {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .recap-header {
+    font-size: 3.5rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .recap-header {
+    font-size: 4rem;
+  }
 }
 
 .recap-footer {
@@ -145,16 +193,44 @@
 }
 
 .slide-content h2 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 900;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   text-transform: uppercase;
 }
 
+@media (min-width: 576px) {
+  .slide-content h2 {
+    font-size: 1.75rem;
+    margin-bottom: 25px;
+  }
+}
+
+@media (min-width: 768px) {
+  .slide-content h2 {
+    font-size: 2rem;
+    margin-bottom: 30px;
+  }
+}
+
 .big-stat {
-  font-size: 5rem;
+  font-size: 3rem;
   font-weight: 900;
-  margin: 20px 0;
+  margin: 15px 0;
+}
+
+@media (min-width: 576px) {
+  .big-stat {
+    font-size: 4rem;
+    margin: 18px 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .big-stat {
+    font-size: 5rem;
+    margin: 20px 0;
+  }
 }
 
 .stat-description {
@@ -172,10 +248,26 @@
 .top-tracks-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin: 20px 0;
+  gap: 10px;
+  margin: 15px 0;
   width: 100%;
-  max-width: 500px;
+  max-width: 100%;
+}
+
+@media (min-width: 576px) {
+  .top-tracks-list {
+    gap: 12px;
+    margin: 18px 0;
+    max-width: 450px;
+  }
+}
+
+@media (min-width: 768px) {
+  .top-tracks-list {
+    gap: 15px;
+    margin: 20px 0;
+    max-width: 500px;
+  }
 }
 
 .track-item {

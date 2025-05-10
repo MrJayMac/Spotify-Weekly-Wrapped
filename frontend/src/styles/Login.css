@@ -12,9 +12,21 @@
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 500px;
+  max-width: 90%;
   overflow: hidden;
   color: white;
+}
+
+@media (min-width: 576px) {
+  .login-card {
+    max-width: 450px;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-card {
+    max-width: 500px;
+  }
 }
 
 .login-header {
@@ -26,8 +38,20 @@
 
 .login-header h1 {
   margin: 0;
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   font-weight: 700;
+}
+
+@media (min-width: 576px) {
+  .login-header h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-header h1 {
+    font-size: 2.2rem;
+  }
 }
 
 .login-header p {
@@ -37,14 +61,40 @@
 }
 
 .login-content {
-  padding: 30px;
+  padding: 20px 15px;
   text-align: center;
 }
 
+@media (min-width: 576px) {
+  .login-content {
+    padding: 25px 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-content {
+    padding: 30px;
+  }
+}
+
 .login-content p {
-  margin-bottom: 25px;
-  font-size: 1.1rem;
+  margin-bottom: 20px;
+  font-size: 1rem;
   line-height: 1.5;
+}
+
+@media (min-width: 576px) {
+  .login-content p {
+    margin-bottom: 22px;
+    font-size: 1.05rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-content p {
+    margin-bottom: 25px;
+    font-size: 1.1rem;
+  }
 }
 
 .spotify-login-button {
@@ -55,13 +105,32 @@
   color: white;
   border: none;
   border-radius: 30px;
-  padding: 12px 30px;
-  font-size: 1.1rem;
+  padding: 10px 20px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 250px;
+}
+
+@media (min-width: 576px) {
+  .spotify-login-button {
+    padding: 11px 25px;
+    font-size: 1.05rem;
+    margin-bottom: 25px;
+    width: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .spotify-login-button {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+  }
 }
 
 .spotify-login-button:hover {

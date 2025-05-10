@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext } from 'react';
 import './App.css';
+import './styles/responsive.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
